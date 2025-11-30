@@ -1,0 +1,184 @@
+import 'package:flutter/material.dart';
+import '../Login_Register/login_screen.dart'; // Pastikan path benar
+
+class OnboardingScreenTwo extends StatefulWidget {
+  const OnboardingScreenTwo({super.key});
+
+  @override
+  State<OnboardingScreenTwo> createState() => _OnboardingScreenTwoState();
+}
+
+class _OnboardingScreenTwoState extends State<OnboardingScreenTwo> {
+  // Warna utama
+  final Color mainColor = const Color(0xFF0074D9);
+
+  // Controller untuk mengatur tampilan slide (viewportFraction < 1 agar gambar samping terlihat)
+  late PageController _pageController;
+
+  // Daftar nama file gambar yang akan di-slide
+  final List<String> _images = [
+    'assets/images/ob_1.jpg', // Gambar slide kiri
+    'assets/images/ob_2.jpg', // Gambar slide tengah (Utama)
+    'assets/images/ob_3.jpg', // Gambar Kanan (Contoh: Burger Hitam)
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // viewportFraction: 0.7 artinya gambar utama memakan 70% layar,
+    // sisanya untuk memperlihatkan potongan gambar kiri/kanan.
+    // initialPage: 1 agar mulai dari gambar tengah.
+    _pageController = PageController(viewportFraction: 0.75, initialPage: 1);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // --- 1. BAGIAN GAMBAR (SLIDER / CAROUSEL) ---
+            Expanded(
+              flex: 3,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _images.length,
+                itemBuilder: (context, index) {
+                  // Logic animasi simple: Gambar yang aktif lebih besar sedikit (opsional)
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                    ), // Jarak antar gambar
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      image: DecorationImage(
+                        image: AssetImage(_images[index]),
+                        fit: BoxFit.cover, // Atau BoxFit.contain sesuai selera
+                      ),
+                      // Opsional: Tambahkan shadow agar terlihat melayang
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // --- 2. INDIKATOR HALAMAN ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildIndicator(color: Colors.grey.shade300),
+                _buildIndicator(color: Colors.grey.shade300),
+                _buildIndicator(color: mainColor), // Aktif
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            // --- 3. JUDUL & DESKRIPSI ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                children: [
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                        fontFamily: 'Inter',
+                      ),
+                      children: [
+                        const TextSpan(text: "All Your\n"),
+                        TextSpan(
+                          text: "destination",
+                          style: TextStyle(color: mainColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "TravelEase brings unforgettable journeys to everyone, offering curated destinations, smart guides, and seamless experiences that inspire every explorer.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // --- 4. TOMBOL GET STARTED ---
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mainColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Get Started",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicator({required Color color}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      height: 4,
+      width: 24,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
