@@ -12,22 +12,22 @@ class _OnboardingScreenTwoState extends State<OnboardingScreenTwo> {
   // Warna utama
   final Color mainColor = const Color(0xFF0074D9);
 
-  // Controller untuk mengatur tampilan slide (viewportFraction < 1 agar gambar samping terlihat)
+  // Controller
   late PageController _pageController;
 
-  // Daftar nama file gambar yang akan di-slide
+  // State untuk melacak posisi gambar aktif (Default: 1 karena initialPage: 1)
+  int _currentIndex = 1;
+
+  // Daftar gambar
   final List<String> _images = [
-    'assets/images/ob_1.jpg', // Gambar slide kiri
-    'assets/images/ob_2.jpg', // Gambar slide tengah (Utama)
-    'assets/images/ob_3.jpg', // Gambar Kanan (Contoh: Burger Hitam)
+    'assets/images/ob_1.jpg',
+    'assets/images/ob_2.jpg',
+    'assets/images/ob_3.jpg',
   ];
 
   @override
   void initState() {
     super.initState();
-    // viewportFraction: 0.7 artinya gambar utama memakan 70% layar,
-    // sisanya untuk memperlihatkan potongan gambar kiri/kanan.
-    // initialPage: 1 agar mulai dari gambar tengah.
     _pageController = PageController(viewportFraction: 0.75, initialPage: 1);
   }
 
@@ -52,19 +52,21 @@ class _OnboardingScreenTwoState extends State<OnboardingScreenTwo> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _images.length,
+                // UPDATE: Mengubah state saat halaman digeser
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
                 itemBuilder: (context, index) {
-                  // Logic animasi simple: Gambar yang aktif lebih besar sedikit (opsional)
                   return Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                    ), // Jarak antar gambar
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       image: DecorationImage(
                         image: AssetImage(_images[index]),
-                        fit: BoxFit.cover, // Atau BoxFit.contain sesuai selera
+                        fit: BoxFit.cover,
                       ),
-                      // Opsional: Tambahkan shadow agar terlihat melayang
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -80,14 +82,17 @@ class _OnboardingScreenTwoState extends State<OnboardingScreenTwo> {
 
             const SizedBox(height: 20),
 
-            // --- 2. INDIKATOR HALAMAN ---
+            // --- 2. INDIKATOR HALAMAN (DINAMIS) ---
+            // UPDATE: Menggunakan loop untuk generate warna sesuai posisi aktif
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildIndicator(color: Colors.grey.shade300),
-                _buildIndicator(color: Colors.grey.shade300),
-                _buildIndicator(color: mainColor), // Aktif
-              ],
+              children: List.generate(_images.length, (index) {
+                // Tentukan warna: Biru jika aktif, Abu jika tidak
+                Color color = (_currentIndex == index)
+                    ? mainColor
+                    : Colors.grey.shade300;
+                return _buildIndicator(color: color);
+              }),
             ),
 
             const SizedBox(height: 30),
@@ -170,8 +175,10 @@ class _OnboardingScreenTwoState extends State<OnboardingScreenTwo> {
     );
   }
 
+  // Widget Indikator dengan Animasi Halus
   Widget _buildIndicator({required Color color}) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300), // Efek transisi warna
       margin: const EdgeInsets.symmetric(horizontal: 4),
       height: 4,
       width: 24,

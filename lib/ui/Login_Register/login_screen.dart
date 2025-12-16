@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'resiter_secreen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Wajib
+import '../home/home_screen.dart'; // Sesuaikan path ke file Home Anda
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,38 +23,59 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- FUNGSI LOGIN KE FIREBASE ---
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-    });
+    // 1. Validasi Input (Opsional, pastikan controller tidak kosong)
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email dan Password tidak boleh kosong")),
+      );
+      return;
+    }
+
+    // Tampilkan Loading (jika ada variable isLoading)
+    // setState(() => isLoading = true);
 
     try {
+      // --- PROSES LOGIN FIREBASE ---
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Jika berhasil, pindah ke halaman Home (Buat file home_screen.dart nanti)
+      // --- SYARAT TUBES (SHARED PREFERENCES) ---
+      // Simpan tanda bahwa user sudah login agar Splash Screen membacanya nanti
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      // Opsional: Simpan email juga buat ditampilkan di Profile
+      await prefs.setString('userEmail', _emailController.text.trim());
+
+      // --- NAVIGASI KE HOME ---
       if (mounted) {
-        ScaffoldMessenger.of(
+        Navigator.pushAndRemoveUntil(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Login Berhasil!")));
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
-        // Aktifkan baris di atas jika halaman Home sudah ada
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) =>
+              false, // Menghapus semua riwayat halaman sebelumnya (Login/Onboarding)
+        );
       }
     } on FirebaseAuthException catch (e) {
-      // Menangani Error (misal: password salah, user tidak ditemukan)
-      String message = e.message ?? "Terjadi kesalahan";
+      // Handle Error Firebase (Password salah / User tidak ada)
+      String message = "Login Gagal";
+      if (e.code == 'user-not-found') {
+        message = "Email tidak terdaftar.";
+      } else if (e.code == 'wrong-password') {
+        message = "Password salah.";
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
+    } catch (e) {
+      print("Error: $e");
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // Matikan Loading
+      // if (mounted) setState(() => isLoading = false);
     }
   }
 

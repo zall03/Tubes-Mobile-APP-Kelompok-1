@@ -1,6 +1,8 @@
+import 'dart:async'; // Untuk langganan stream koneksi
+import 'package:connectivity_plus/connectivity_plus.dart'; // Library cek sinyal
 import 'package:flutter/material.dart';
-import 'onboarding_2.dart'; // Import halaman kedua
-import '../Login_Register/login_screen.dart'; // Import halaman login
+import 'onboarding_2.dart';
+import '../Login_Register/login_screen.dart';
 
 class OnboardingScreenOne extends StatefulWidget {
   const OnboardingScreenOne({super.key});
@@ -13,28 +15,82 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
   // Warna utama
   final Color mainColor = const Color(0xFF0074D9);
 
-  // Controller untuk slider gambar
+  // Controller
   late PageController _pageController;
 
-  // Daftar gambar untuk Onboarding 1
+  // State untuk melacak halaman aktif agar indikator bergerak
+  // Kita mulai dari 1 karena initialPage di controller adalah 1
+  int _currentIndex = 1;
+
+  // Variable untuk langganan status internet
+  StreamSubscription? _connectivitySubscription;
+
   final List<String> _images = [
-    'assets/images/ob_1.jpg', // Gambar slide kiri
-    'assets/images/ob_2.jpg', // Gambar slide tengah (Utama)
-    'assets/images/ob_3.jpg', // Gambar slide kanan
+    'assets/images/ob_1.jpg',
+    'assets/images/ob_2.jpg',
+    'assets/images/ob_3.jpg',
   ];
 
   @override
   void initState() {
     super.initState();
-    // viewportFraction 0.75 agar gambar samping terlihat sedikit
-    // initialPage: 1 agar mulai dari gambar tengah
+    // 1. Setup PageController
     _pageController = PageController(viewportFraction: 0.75, initialPage: 1);
+
+    // 2. Cek Koneksi Internet saat pertama kali buka
+    _checkInitialConnection();
+
+    // 3. (Opsional) Memantau jika koneksi putus-nyambung secara live
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
+      // Jika salah satu result adalah none, berarti offline
+      if (results.contains(ConnectivityResult.none)) {
+        _showNoInternetNotification();
+      }
+    });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _connectivitySubscription
+        ?.cancel(); // Hentikan pemantauan saat keluar halaman
     super.dispose();
+  }
+
+  // --- LOGIKA CEK KONEKSI ---
+  Future<void> _checkInitialConnection() async {
+    // Cek status saat ini
+    final List<ConnectivityResult> connectivityResult = await (Connectivity()
+        .checkConnectivity());
+
+    // Jika tidak ada koneksi (none)
+    if (connectivityResult.contains(ConnectivityResult.none)) {
+      _showNoInternetNotification();
+    }
+  }
+
+  void _showNoInternetNotification() {
+    // Pastikan widget masih aktif sebelum menampilkan snackbar
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating, // Melayang agar lebih modern
+        content: Row(
+          children: const [
+            Icon(Icons.wifi_off, color: Colors.white),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text("Koneksi Internet Gagal. Periksa jaringan Anda."),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -52,6 +108,12 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _images.length,
+                // UPDATE: Update state saat digeser agar indikator berubah
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
                 itemBuilder: (context, index) {
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -59,9 +121,8 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
                       borderRadius: BorderRadius.circular(20),
                       image: DecorationImage(
                         image: AssetImage(_images[index]),
-                        fit: BoxFit.cover, // Gambar memenuhi kotak
+                        fit: BoxFit.cover,
                       ),
-                      // Shadow agar gambar terlihat timbul
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -77,15 +138,18 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
 
             const SizedBox(height: 20),
 
-            // --- 2. INDIKATOR HALAMAN ---
-            // Sesuai request: [Abu, BIRU, Abu]
+            // --- 2. INDIKATOR HALAMAN (DINAMIS) ---
+            // UPDATE: Menggunakan loop untuk generate indikator sesuai jumlah gambar
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildIndicator(color: Colors.grey.shade300),
-                _buildIndicator(color: mainColor), // Yang aktif (Tengah)
-                _buildIndicator(color: Colors.grey.shade300),
-              ],
+              children: List.generate(_images.length, (index) {
+                // Jika index indikator sama dengan halaman saat ini, warnanya Biru.
+                // Jika beda, warnanya Abu.
+                Color color = (_currentIndex == index)
+                    ? mainColor
+                    : Colors.grey.shade300;
+                return _buildIndicator(color: color);
+              }),
             ),
 
             const SizedBox(height: 30),
@@ -201,9 +265,11 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
     );
   }
 
-  // Widget Indikator
+  // Widget Indikator (Desain Tetap)
   Widget _buildIndicator({required Color color}) {
-    return Container(
+    // Kita tambahkan animasi durasi agar perpindahan warna halus
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       height: 4,
       width: 24,
