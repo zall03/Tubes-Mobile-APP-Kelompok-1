@@ -6,6 +6,7 @@ import '../explore/explore_page.dart';
 import '../wishlist/wishlist_page.dart';
 import '../profile/profile_screen.dart';
 import '../detail/detail_screen.dart';
+import '../notification/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -141,7 +142,7 @@ class _HomeBodyState extends State<HomeBody> {
             Text(
               "Wis",
               style: GoogleFonts.poppins(
-                color: textColor, // Dinamis
+                color: textColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
               ),
@@ -159,7 +160,15 @@ class _HomeBodyState extends State<HomeBody> {
         actions: [
           IconButton(
             icon: Icon(Icons.notifications_none, color: textColor),
-            onPressed: () {},
+            onPressed: () {
+              // [UPDATE] Navigasi ke Halaman Notifikasi
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 10),
         ],
