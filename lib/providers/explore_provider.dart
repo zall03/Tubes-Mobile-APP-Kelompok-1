@@ -8,8 +8,13 @@ class ExploreProvider extends ChangeNotifier {
     'Semua',
     'Gunung',
     'Pantai',
-    'Curug',
+    'Air Terjun',
     'Danau',
+    'Lembah',
+    'Pulau',
+    'Waterpark',
+    'Kebun Binatang'
+    'candi',
   ];
   String selectedCategory = 'Semua';
 
