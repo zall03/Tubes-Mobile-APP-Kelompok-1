@@ -3,18 +3,25 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/explore_provider.dart';
 import '../../data/models/destination_model.dart';
-import '../detail/detail_screen.dart'; // [BARU] Import Detail Screen
+import '../detail/detail_screen.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 1. Panggil Provider
     final provider = Provider.of<ExploreProvider>(context);
 
+    // Variabel Tema
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Warna Search Bar (Gelap di Dark Mode, Abu terang di Light Mode)
+    final searchBarColor = isDark ? Colors.grey[800] : Colors.grey[100];
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -25,13 +32,14 @@ class ExplorePage extends StatelessWidget {
 
               // --- SEARCH BAR ---
               TextField(
+                style: TextStyle(color: textColor), // Warna teks ketikan
                 decoration: InputDecoration(
                   hintText: "Search destination...",
                   hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.search, color: Colors.black54),
-                  suffixIcon: const Icon(Icons.tune, color: Colors.black54),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: const Icon(Icons.tune, color: Colors.grey),
                   filled: true,
-                  fillColor: Colors.grey[100],
+                  fillColor: searchBarColor, // Dinamis
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -45,14 +53,14 @@ class ExplorePage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // --- DROPDOWN KATEGORI ---
+              // --- DROPDOWN ---
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0074D9),
+                  color: const Color(0xFF0074D9), // Biru tetap
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -88,7 +96,7 @@ class ExplorePage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // --- GRID VIEW (HASIL FILTER) ---
+              // --- GRID VIEW ---
               Expanded(
                 child: provider.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -112,7 +120,11 @@ class ExplorePage extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final item = provider.filteredDestinations[index];
                           // Kirim context agar navigator bekerja
-                          return _buildDestinationCard(context, item);
+                          return _buildDestinationCard(
+                            context,
+                            item,
+                            textColor,
+                          );
                         },
                       ),
               ),
@@ -123,8 +135,11 @@ class ExplorePage extends StatelessWidget {
     );
   }
 
-  // [MODIFIKASI] Definisi Fungsi Kartu dengan Navigasi
-  Widget _buildDestinationCard(BuildContext context, DestinationModel item) {
+  Widget _buildDestinationCard(
+    BuildContext context,
+    DestinationModel item,
+    Color textColor,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -145,13 +160,6 @@ class ExplorePage extends StatelessWidget {
                   image: NetworkImage(item.imageUrl),
                   fit: BoxFit.cover,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
               ),
             ),
           ),
@@ -161,7 +169,7 @@ class ExplorePage extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: Colors.black87,
+              color: textColor, // Dinamis
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

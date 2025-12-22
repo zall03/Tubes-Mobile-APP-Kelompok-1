@@ -3,11 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/home_provider.dart';
 import '../explore/explore_page.dart';
-import '../detail/detail_screen.dart'; // [BARU] Import Detail Screen
+import '../wishlist/wishlist_page.dart';
+import '../profile/profile_screen.dart';
+import '../detail/detail_screen.dart';
 
-// ===============================================================
-// 1. CLASS UTAMA: HOMESCREEN (Sebagai Navigasi / Wrapper)
-// ===============================================================
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,18 +15,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // State untuk melacak halaman mana yang aktif (0 = Home)
   int _selectedIndex = 0;
 
-  // Daftar Halaman yang akan ditampilkan
   final List<Widget> _pages = [
-    const HomeBody(), // Index 0: Halaman Home
-    const ExplorePage(), // Index 1: Halaman Explore
-    const WishlistPage(), // Index 2: Halaman Wishlist
-    const ProfilePage(), // Index 3: Halaman Profile
+    const HomeBody(),
+    const ExplorePage(),
+    const WishlistPage(),
+    const ProfileScreen(),
   ];
 
-  // Fungsi saat tombol navigasi ditekan
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -36,17 +32,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil warna dari Tema
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final navColor = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-
-      // BODY berubah sesuai halaman yang dipilih di _pages
+      backgroundColor: bgColor,
       body: _pages[_selectedIndex],
-
-      // BOTTOM NAVIGATION BAR
       bottomNavigationBar: Container(
         height: 80,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: navColor, // Ikut tema (Putih/Gelap)
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -68,9 +64,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Widget Helper Tombol Navigasi
   Widget _buildNavItem(IconData icon, int index) {
     bool isSelected = _selectedIndex == index;
+    // Icon inactive pakai onSurface (otomatis putih di dark mode) tapi transparan
+    final inactiveColor = Theme.of(
+      context,
+    ).colorScheme.onSurface.withOpacity(0.5);
 
     return GestureDetector(
       onTap: () => _onItemTapped(index),
@@ -83,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Icon(
           icon,
-          color: isSelected ? Colors.white : Colors.grey,
+          color: isSelected ? Colors.white : inactiveColor,
           size: 28,
         ),
       ),
@@ -91,9 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ===============================================================
-// 2. CLASS KONTEN: HOME BODY
-// ===============================================================
 class HomeBody extends StatefulWidget {
   const HomeBody({super.key});
 
@@ -104,7 +100,6 @@ class HomeBody extends StatefulWidget {
 class _HomeBodyState extends State<HomeBody> {
   late PageController _promoPageController;
   int _currentPromoIndex = 0;
-
   final List<String> _promoImages = [
     'assets/images/ob_2.jpg',
     'assets/images/ob_1.jpg',
@@ -132,11 +127,13 @@ class _HomeBodyState extends State<HomeBody> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<HomeProvider>(context);
+    // [PENTING] Warna teks otomatis (Hitam di Light, Putih di Dark)
+    final textColor = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Row(
@@ -144,7 +141,7 @@ class _HomeBodyState extends State<HomeBody> {
             Text(
               "Wis",
               style: GoogleFonts.poppins(
-                color: Colors.black,
+                color: textColor, // Dinamis
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
               ),
@@ -161,7 +158,7 @@ class _HomeBodyState extends State<HomeBody> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
+            icon: Icon(Icons.notifications_none, color: textColor),
             onPressed: () {},
           ),
           const SizedBox(width: 10),
@@ -175,19 +172,22 @@ class _HomeBodyState extends State<HomeBody> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  _buildSectionHeader("Our Promo", showArrow: false),
+                  _buildSectionHeader("Our Promo", textColor, showArrow: false),
                   const SizedBox(height: 20),
                   _buildZoomPromoSlider(),
                   const SizedBox(height: 15),
                   _buildPromoIndicator(),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("New Destination"),
+                  _buildSectionHeader("New Destination", textColor),
                   const SizedBox(height: 10),
-                  _buildHorizontalList(provider.newDestinations),
+                  _buildHorizontalList(provider.newDestinations, textColor),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("Trending Destination"),
+                  _buildSectionHeader("Trending Destination", textColor),
                   const SizedBox(height: 10),
-                  _buildHorizontalList(provider.trendingDestinations),
+                  _buildHorizontalList(
+                    provider.trendingDestinations,
+                    textColor,
+                  ),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -195,7 +195,6 @@ class _HomeBodyState extends State<HomeBody> {
     );
   }
 
-  // --- WIDGET HELPER BAWAAN HOME BODY ---
   Widget _buildZoomPromoSlider() {
     return SizedBox(
       height: 220,
@@ -234,13 +233,6 @@ class _HomeBodyState extends State<HomeBody> {
                   image: AssetImage(_promoImages[index]),
                   fit: BoxFit.cover,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
               ),
             ),
           );
@@ -268,7 +260,11 @@ class _HomeBodyState extends State<HomeBody> {
     );
   }
 
-  Widget _buildSectionHeader(String title, {bool showArrow = true}) {
+  Widget _buildSectionHeader(
+    String title,
+    Color textColor, {
+    bool showArrow = true,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -279,7 +275,7 @@ class _HomeBodyState extends State<HomeBody> {
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: textColor,
             ),
           ),
           if (showArrow)
@@ -289,8 +285,7 @@ class _HomeBodyState extends State<HomeBody> {
     );
   }
 
-  // [MODIFIKASI] Widget List Horizontal dengan Navigasi
-  Widget _buildHorizontalList(List<dynamic> data) {
+  Widget _buildHorizontalList(List<dynamic> data, Color textColor) {
     if (data.isEmpty) return const SizedBox();
     return SizedBox(
       height: 160,
@@ -301,7 +296,6 @@ class _HomeBodyState extends State<HomeBody> {
         padding: const EdgeInsets.only(left: 20),
         itemBuilder: (context, index) {
           final item = data[index];
-          // Bungkus dengan GestureDetector
           return GestureDetector(
             onTap: () {
               Navigator.push(
@@ -336,6 +330,7 @@ class _HomeBodyState extends State<HomeBody> {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: textColor, // Dinamis
                     ),
                   ),
                 ],
@@ -344,38 +339,6 @@ class _HomeBodyState extends State<HomeBody> {
           );
         },
       ),
-    );
-  }
-}
-
-// ===============================================================
-// 3. PLACEHOLDER PAGE
-// ===============================================================
-
-class WishlistPage extends StatelessWidget {
-  const WishlistPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Wishlist"),
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(child: Text("Halaman Wishlist")),
-    );
-  }
-}
-
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Profile"),
-        automaticallyImplyLeading: false,
-      ),
-      body: const Center(child: Text("Halaman Profile")),
     );
   }
 }

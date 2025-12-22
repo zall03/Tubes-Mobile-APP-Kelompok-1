@@ -1,5 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -9,18 +9,18 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // Controller input
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // State variabel
-  bool _isObscure = true; // Sembunyikan password
-  bool _isChecked = false; // Checkbox Terms
-  bool _isLoading = false; // Loading saat proses daftar
+  bool _isObscure = true;
+  bool _isChecked = false;
+  bool _isLoading = false;
+
+  // Instance Supabase
+  final _supabase = Supabase.instance.client;
 
   Future<void> _register() async {
-    // 1. Validasi Input Dasar
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty) {
@@ -30,7 +30,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    // 2. Validasi Checkbox
     if (!_isChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -40,75 +39,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // 3. Buat User di Firebase
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
+      // 1. DAFTAR KE SUPABASE AUTH
+      final AuthResponse res = await _supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        // Simpan Nama di Metadata
+        data: {'full_name': _nameController.text.trim()},
+      );
+
+      // Cek apakah berhasil login/daftar otomatis
+      if (res.user != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Registrasi Berhasil! Silakan Login."),
+            ),
           );
-
-      // 4. Simpan Nama User (Update Profile)
-      await userCredential.user?.updateDisplayName(_nameController.text.trim());
-
+          Navigator.pop(context); // Kembali ke Login Screen
+        }
+      }
+    } on AuthException catch (e) {
+      // Handle Error Khas Supabase
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Registrasi Berhasil! Silakan Login.")),
-        );
-
-        // Kembali ke halaman Login
-        Navigator.pop(context);
-      }
-    } on FirebaseAuthException catch (e) {
-      // --- PERBAIKAN DI SINI ---
-      // Kita ambil pesan asli dari Firebase biar tau errornya apa
-      String message = e.message ?? "Terjadi kesalahan tidak diketahui";
-
-      // Print error ke Terminal VS Code (biar kamu bisa baca detailnya)
-      print("Firebase Error Code: ${e.code}");
-      print("Firebase Error Message: ${e.message}");
-
-      if (e.code == 'weak-password') {
-        message = "Password terlalu lemah (min 6 karakter).";
-      } else if (e.code == 'email-already-in-use') {
-        message = "Email ini sudah terdaftar.";
-      } else if (e.code == 'invalid-email') {
-        message = "Format email tidak valid.";
-      } else if (e.code == 'network-request-failed') {
-        message = "Periksa koneksi internet Anda.";
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
-      // Error lain selain Firebase
-      print("General Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Terjadi kesalahan sistem"),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // TAMPILAN SAMA PERSIS, HANYA LOGIC YANG BERUBAH
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -116,7 +89,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Tombol Back
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
@@ -125,7 +98,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // JUDUL & DESKRIPSI
               const Text(
                 "Sign Up",
                 style: TextStyle(
@@ -140,8 +112,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 30),
-
-              // INPUT NAME
               const Text(
                 "Name",
                 style: TextStyle(
@@ -157,8 +127,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 icon: Icons.person,
               ),
               const SizedBox(height: 20),
-
-              // INPUT EMAIL
               const Text(
                 "Email",
                 style: TextStyle(
@@ -175,8 +143,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 inputType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 20),
-
-              // INPUT PASSWORD
               const Text(
                 "Password",
                 style: TextStyle(
@@ -197,11 +163,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _isObscure ? Icons.visibility_off : Icons.visibility,
                       color: Colors.blue,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isObscure = !_isObscure;
-                      });
-                    },
+                    onPressed: () => setState(() => _isObscure = !_isObscure),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -212,24 +174,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 15),
-
-              // CHECKBOX TERMS
               Row(
                 children: [
                   Checkbox(
                     value: _isChecked,
                     activeColor: Colors.blue,
-                    onChanged: (val) {
-                      setState(() {
-                        _isChecked = val!;
-                      });
-                    },
+                    onChanged: (val) => setState(() => _isChecked = val!),
                   ),
                   const Text("Agree With "),
                   GestureDetector(
-                    onTap: () {}, // Nanti bisa arahkan ke halaman Terms
+                    onTap: () {},
                     child: const Text(
                       "Terms & Condition",
                       style: TextStyle(
@@ -240,10 +195,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
-              // TOMBOL CREATE NOW
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -267,10 +219,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 50),
-
-              // ALREADY HAVE ACCOUNT
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -279,9 +228,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context); // Kembali ke Login Screen
-                    },
+                    onTap: () => Navigator.pop(context),
                     child: const Text(
                       "Sign In",
                       style: TextStyle(
@@ -300,7 +247,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Widget bantuan agar kode lebih rapi (untuk Name dan Email)
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,

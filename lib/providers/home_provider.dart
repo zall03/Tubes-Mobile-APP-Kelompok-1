@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Ganti http dengan ini
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/destination_model.dart';
 
 class HomeProvider extends ChangeNotifier {
@@ -15,22 +15,39 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Request Data ke Table 'destinations'
-      // Ini setara dengan GET request di REST API
+      // 1. Request SEMUA Data ke Table 'destinations'
       final List<dynamic> response = await _supabase
           .from('destinations')
-          .select()
-          .order('id', ascending: true); // Urutkan data
+          .select();
 
-      // 2. Konversi ke Model
-      // Supabase langsung mengembalikan List<Map>, jadi tidak perlu jsonDecode
+      // 2. Konversi ke List Model
       List<DestinationModel> allData = response
           .map((json) => DestinationModel.fromJson(json))
           .toList();
 
-      // 3. Bagi Data untuk UI
-      newDestinations = allData.take(3).toList();
-      trendingDestinations = allData.length > 3 ? allData.sublist(3) : allData;
+      // 3. LOGIKA NEW DESTINATION (6 Terbaru berdasarkan ID)
+      // Kita copy dulu list-nya agar tidak merusak urutan asli
+      List<DestinationModel> sortedById = List.from(allData);
+
+      // Sort Descending (Besar ke Kecil) berdasarkan ID
+      // Kita parse ke int agar urutan angka benar ("10" lebih besar dari "2")
+      sortedById.sort((a, b) {
+        int idA = int.tryParse(a.id) ?? 0;
+        int idB = int.tryParse(b.id) ?? 0;
+        return idB.compareTo(idA); // B banding A = Descending
+      });
+
+      // Ambil 6 teratas
+      newDestinations = sortedById.take(6).toList();
+
+      // 4. LOGIKA TRENDING DESTINATION (6 Terbaik berdasarkan Rating)
+      List<DestinationModel> sortedByRating = List.from(allData);
+
+      // Sort Descending (Besar ke Kecil) berdasarkan Rating
+      sortedByRating.sort((a, b) => b.rating.compareTo(a.rating));
+
+      // Ambil 6 teratas
+      trendingDestinations = sortedByRating.take(6).toList();
     } catch (e) {
       debugPrint("Error fetching Supabase data: $e");
     }

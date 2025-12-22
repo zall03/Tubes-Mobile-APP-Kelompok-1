@@ -1,103 +1,160 @@
 import 'package:flutter/material.dart';
-import '../../data/models/destination_model.dart'; // Pastikan import model Anda benar
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../data/models/destination_model.dart';
+import '../../providers/explore_provider.dart';
+import '../../providers/wishlist_provider.dart';
 
-class DetailScreen extends StatelessWidget {
+class DetailScreen extends StatefulWidget {
   final DestinationModel destination;
-
   const DetailScreen({super.key, required this.destination});
 
   @override
+  State<DetailScreen> createState() => _DetailScreenState();
+}
+
+class _DetailScreenState extends State<DetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<ExploreProvider>(context, listen: false);
+      if (provider.allDestinations.isEmpty) {
+        provider.fetchExploreData();
+      }
+    });
+  }
+
+  Future<void> _selectDateAndAddWishlist(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+      // Custom theme agar DatePicker terlihat jelas di Dark Mode
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      if (!mounted) return;
+      Provider.of<WishlistProvider>(
+        context,
+        listen: false,
+      ).addToWishlist(widget.destination, picked);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Jadwal ke ${widget.destination.name} berhasil disimpan!",
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Variabel Tema
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
+    final exploreProvider = Provider.of<ExploreProvider>(context);
+    final List<DestinationModel> relatedDestinations = exploreProvider
+        .allDestinations
+        .where(
+          (item) =>
+              item.category.toLowerCase() ==
+                  widget.destination.category.toLowerCase() &&
+              item.id != widget.destination.id,
+        )
+        .toList();
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      // AppBar transparan/minimalis sesuai desain
+      backgroundColor: bgColor, // Dinamis
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Navigasi kembali
+          icon: Icon(Icons.arrow_back, color: textColor), // Icon back dinamis
+          onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.grey),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Gambar Utama (Rounded)
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.network(
-                  destination.imageUrl,
+                  widget.destination.imageUrl,
                   height: 300,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     height: 300,
                     color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
+                    child: const Icon(Icons.broken_image),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            // 2. Nama Destinasi & Deskripsi
             Text(
-              destination.name,
+              widget.destination.name,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue, // Sesuai warna desain
+                color: Colors.blue,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              "Kategori: ${destination.category} • Deskripsi singkat tempat wisata yang menakjubkan ini.",
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              "Kategori: ${widget.destination.category}",
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withOpacity(0.7),
+              ), // Dinamis agak pudar
             ),
             const SizedBox(height: 16),
-
-            // 3. Rating
             Row(
               children: [
                 const Icon(Icons.star, color: Colors.orange, size: 20),
                 const SizedBox(width: 4),
                 Text(
-                  destination.rating.toString(),
-                  style: const TextStyle(
+                  widget.destination.rating.toString(),
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                  ),
+                    color: textColor,
+                  ), // Dinamis
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // 4. Tombol Add Wishlist (Bisa dipakai untuk Shared Preferences nanti)
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implementasi simpan ke Shared Preferences
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Ditambahkan ke Wishlist!"),
-                    ), //
-                  );
-                },
+                onPressed: () => _selectDateAndAddWishlist(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(
@@ -105,7 +162,7 @@ class DetailScreen extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  "Add Wishlist",
+                  "Add Wishlist & Schedule",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -115,55 +172,77 @@ class DetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-
-            // 5. Other Destination (Horizontal List)
-            const Text(
-              "Other Destination",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 160, // Tinggi area scroll horizontal
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 5, // Contoh data dummy
-                separatorBuilder: (context, index) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  return _buildRecommendationCard();
-                },
+            if (relatedDestinations.isNotEmpty) ...[
+              Text(
+                "Other Destination",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 160,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: relatedDestinations.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 16),
+                  itemBuilder: (context, index) => _buildRecommendationCard(
+                    context,
+                    relatedDestinations[index],
+                    textColor,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
-      // Catatan: BottomNavigationBar biasanya ada di MainScreen, bukan di DetailScreen
     );
   }
 
-  // Widget kecil untuk item rekomendasi
-  Widget _buildRecommendationCard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            color: Colors.grey[200],
-            width: 120,
-            height: 120,
-            child: const Icon(
-              Icons.image,
-              color: Colors.grey,
-            ), // Placeholder gambar
+  Widget _buildRecommendationCard(
+    BuildContext context,
+    DestinationModel item,
+    Color textColor,
+  ) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailScreen(destination: item),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              item.imageUrl,
+              width: 120,
+              height: 120,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          "Nama Wisata",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        ),
-      ],
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 120,
+            child: Text(
+              item.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: textColor,
+              ), // Dinamis
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

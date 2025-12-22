@@ -1,8 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'resiter_secreen.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Wajib
-import '../home/home_screen.dart'; // Sesuaikan path ke file Home Anda
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'resiter_secreen.dart'; // Pastikan nama file ini sesuai
+import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,70 +13,128 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controller untuk mengambil teks dari input
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Variabel untuk menyembunyikan/melihat password
   bool _isObscure = true;
-  // Variabel loading saat proses login
   bool _isLoading = false;
 
-  // --- FUNGSI LOGIN KE FIREBASE ---
+  final _supabase = Supabase.instance.client;
+
+  // --- LOGIN EMAIL BIASA ---
   Future<void> _login() async {
-    // 1. Validasi Input (Opsional, pastikan controller tidak kosong)
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Email dan Password tidak boleh kosong")),
       );
       return;
     }
-
-    // Tampilkan Loading (jika ada variable isLoading)
-    // setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     try {
-      // --- PROSES LOGIN FIREBASE ---
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final AuthResponse res = await _supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      // --- SYARAT TUBES (SHARED PREFERENCES) ---
-      // Simpan tanda bahwa user sudah login agar Splash Screen membacanya nanti
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true);
-      // Opsional: Simpan email juga buat ditampilkan di Profile
-      await prefs.setString('userEmail', _emailController.text.trim());
-
-      // --- NAVIGASI KE HOME ---
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) =>
-              false, // Menghapus semua riwayat halaman sebelumnya (Login/Onboarding)
-        );
+      if (res.session != null) {
+        await _saveSessionAndNavigate(res.user!.email!);
       }
-    } on FirebaseAuthException catch (e) {
-      // Handle Error Firebase (Password salah / User tidak ada)
-      String message = "Login Gagal";
-      if (e.code == 'user-not-found') {
-        message = "Email tidak terdaftar.";
-      } else if (e.code == 'wrong-password') {
-        message = "Password salah.";
-      }
-
+    } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
-      print("Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      // Matikan Loading
-      // if (mounted) setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- GOOGLE SIGN IN ---
+  Future<void> _googleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      // [FIX] Definisikan ID DI SINI agar tidak error
+      const webClientId =
+          '1053045767170-asg4vk2mk56cci4pf72h2qho6n631ss8.apps.googleusercontent.com';
+
+      // Jika belum punya iOS Client ID, pakai string kosong atau ID web sementara
+      // (Supaya variabelnya 'ada' dan tidak merah)
+      const iosClientId =
+          '1053045767170-asg4vk2mk56cci4pf72h2qho6n631ss8.apps.googleusercontent.com';
+
+      // Sekarang variabel 'iosClientId' sudah dikenali
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: iosClientId,
+        serverClientId: webClientId,
+      );
+
+      // 1. Buka Popup Login Google
+      final googleUser = await googleSignIn.signIn();
+
+      // Jika user batal login
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      // 2. Kirim Token ke Supabase
+      final AuthResponse res = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+      // 3. Update Profil User
+      if (res.user != null) {
+        final String fullName = googleUser.displayName ?? "User Google";
+
+        // Update Nama ke Supabase
+        await _supabase.auth.updateUser(
+          UserAttributes(data: {'full_name': fullName}),
+        );
+
+        await _saveSessionAndNavigate(res.user!.email!);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Google Login Gagal: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Helper Simpan Session ---
+  Future<void> _saveSessionAndNavigate(String email) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('userEmail', email);
+
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
     }
   }
 
@@ -90,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              // JUDUL
               const Text(
                 "Sign In",
                 style: TextStyle(
@@ -131,7 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
 
               // INPUT PASSWORD
@@ -146,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 10),
               TextField(
                 controller: _passwordController,
-                obscureText: _isObscure, // Logic sembunyikan password
+                obscureText: _isObscure,
                 decoration: InputDecoration(
                   hintText: "Masukan Password anda",
                   prefixIcon: const Icon(Icons.lock, color: Colors.blue),
@@ -155,11 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _isObscure ? Icons.visibility_off : Icons.visibility,
                       color: Colors.blue,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isObscure = !_isObscure; // Toggle icon mata
-                      });
-                    },
+                    onPressed: () => setState(() => _isObscure = !_isObscure),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -170,8 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
-              // FORGOT PASSWORD
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -179,19 +230,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text("Forgot Password?"),
                 ),
               ),
-
               const SizedBox(height: 20),
 
-              // TOMBOL LOGIN (ACCESS NOW)
+              // TOMBOL LOGIN EMAIL
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : _login, // Matikan tombol jika loading
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, // Warna sesuai desain
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -209,8 +257,38 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 100), // Spasi ke bawah
-              // SIGN UP LINK
+              const SizedBox(height: 20),
+
+              // TOMBOL GOOGLE SIGN IN
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _googleSignIn,
+                  icon: Image.asset(
+                    'assets/images/google_logo.png',
+                    height: 24,
+                    errorBuilder: (c, e, s) =>
+                        const Icon(Icons.g_mobiledata, size: 30),
+                  ),
+                  label: const Text(
+                    "Sign in with Google",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -218,17 +296,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     "Don't have account? ",
                     style: TextStyle(color: Colors.grey),
                   ),
-                  // Di dalam file login_screen.dart, cari bagian "Sign Up" di bawah
                   GestureDetector(
-                    onTap: () {
-                      // Tambahkan ini:
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SignUpScreen(),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SignUpScreen(),
+                      ),
+                    ),
                     child: const Text(
                       "Sign Up",
                       style: TextStyle(

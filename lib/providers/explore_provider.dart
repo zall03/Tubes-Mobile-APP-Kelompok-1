@@ -15,7 +15,10 @@ class ExploreProvider extends ChangeNotifier {
 
   // 2. State Data
   bool isLoading = false;
-  List<DestinationModel> _allDestinations = []; // Data mentah dari Database
+  List<DestinationModel> _allDestinations = []; // Data mentah (Private)
+
+  // [BARU] Getter agar data bisa diakses dari DetailScreen
+  List<DestinationModel> get allDestinations => _allDestinations;
 
   // Client Supabase
   final _supabase = Supabase.instance.client;
@@ -47,9 +50,7 @@ class ExploreProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- BAGIAN PENTING YANG HILANG TADI ---
-
-  // 4. Getter: Mengambil data yang sudah difilter
+  // 4. Getter: Mengambil data yang sudah difilter (Untuk Halaman Explore)
   List<DestinationModel> get filteredDestinations {
     if (selectedCategory == 'Semua') {
       return _allDestinations;
