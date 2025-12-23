@@ -6,18 +6,27 @@ import 'providers/explore_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/theme_provider.dart';
 import 'ui/splash/splash_screen.dart';
-import 'services/notification_service.dart'; // [UPDATE] Import Service
+import 'services/notification_service.dart';
 
 Future<void> main() async {
+  // 1. Pastikan Binding aktif
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: 'https://xfqladronqbapnaagvgr.supabase.co',
-    anonKey: 'sb_publishable_Z2BVYV74vH4KFEWWljxUVA_Pb_5z0U2',
-  );
 
-  // [UPDATE] Initialize Notification Service
-  await NotificationService().init();
+  try {
+    // 3. Init Supabase
+    await Supabase.initialize(
+      url: 'https://xfqladronqbapnaagvgr.supabase.co',
+      anonKey: 'sb_publishable_Z2BVYV74vH4KFEWWljxUVA_Pb_5z0U2',
+    );
 
+    // 4. Init Notifikasi
+    await NotificationService().init();
+  } catch (e) {
+    // Jika ada error saat inisialisasi, print errornya
+    debugPrint("ERROR FATAL SAAT INIT: $e");
+  }
+
+  // 5. Jalankan Aplikasi
   runApp(
     MultiProvider(
       providers: [

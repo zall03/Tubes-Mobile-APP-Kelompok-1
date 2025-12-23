@@ -13,7 +13,7 @@ class ExploreProvider extends ChangeNotifier {
     'Lembah',
     'Pulau',
     'Waterpark',
-    'Kebun Binatang'
+    'Kebun Binatang',
     'candi',
   ];
   String selectedCategory = 'Semua';
@@ -40,13 +40,11 @@ class ExploreProvider extends ChangeNotifier {
 
     try {
       // Ambil semua data dari Supabase
-      final List<dynamic> response = await _supabase
-          .from('destinations')
-          .select();
+      final List<dynamic> response =
+          await _supabase.from('destinations').select();
 
-      _allDestinations = response
-          .map((json) => DestinationModel.fromJson(json))
-          .toList();
+      _allDestinations =
+          response.map((json) => DestinationModel.fromJson(json)).toList();
     } catch (e) {
       debugPrint("Error Explore Supabase: $e");
     }
@@ -55,7 +53,6 @@ class ExploreProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 4. Getter: Mengambil data yang sudah difilter (Untuk Halaman Explore)
   List<DestinationModel> get filteredDestinations {
     if (selectedCategory == 'Semua') {
       return _allDestinations;

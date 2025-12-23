@@ -161,7 +161,6 @@ class _HomeBodyState extends State<HomeBody> {
           IconButton(
             icon: Icon(Icons.notifications_none, color: textColor),
             onPressed: () {
-              // [UPDATE] Navigasi ke Halaman Notifikasi
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -181,7 +180,8 @@ class _HomeBodyState extends State<HomeBody> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  _buildSectionHeader("Our Promo", textColor, showArrow: false),
+                  // [UPDATE] Hapus parameter showArrow: false
+                  _buildSectionHeader("Our Promo", textColor),
                   const SizedBox(height: 20),
                   _buildZoomPromoSlider(),
                   const SizedBox(height: 15),
@@ -269,11 +269,8 @@ class _HomeBodyState extends State<HomeBody> {
     );
   }
 
-  Widget _buildSectionHeader(
-    String title,
-    Color textColor, {
-    bool showArrow = true,
-  }) {
+  // [UPDATE] Fungsi Header tanpa Arrow
+  Widget _buildSectionHeader(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -287,8 +284,7 @@ class _HomeBodyState extends State<HomeBody> {
               color: textColor,
             ),
           ),
-          if (showArrow)
-            const Icon(Icons.arrow_forward, color: Colors.blue, size: 20),
+          // Arrow Icon dihapus dari sini
         ],
       ),
     );

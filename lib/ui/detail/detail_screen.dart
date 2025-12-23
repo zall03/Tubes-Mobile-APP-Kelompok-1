@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../data/models/destination_model.dart';
 import '../../providers/explore_provider.dart';
 import '../../providers/wishlist_provider.dart';
@@ -31,7 +30,6 @@ class _DetailScreenState extends State<DetailScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2030),
-      // Custom theme agar DatePicker terlihat jelas di Dark Mode
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
@@ -75,23 +73,23 @@ class _DetailScreenState extends State<DetailScreen> {
     final textColor = Theme.of(context).colorScheme.onSurface;
 
     final exploreProvider = Provider.of<ExploreProvider>(context);
-    final List<DestinationModel> relatedDestinations = exploreProvider
-        .allDestinations
-        .where(
-          (item) =>
-              item.category.toLowerCase() ==
-                  widget.destination.category.toLowerCase() &&
-              item.id != widget.destination.id,
-        )
-        .toList();
+    final List<DestinationModel> relatedDestinations =
+        exploreProvider.allDestinations
+            .where(
+              (item) =>
+                  item.category.toLowerCase() ==
+                      widget.destination.category.toLowerCase() &&
+                  item.id != widget.destination.id,
+            )
+            .toList();
 
     return Scaffold(
-      backgroundColor: bgColor, // Dinamis
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor), // Icon back dinamis
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -100,6 +98,7 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- GAMBAR UTAMA ---
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
@@ -117,6 +116,8 @@ class _DetailScreenState extends State<DetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // --- NAMA & KATEGORI ---
             Text(
               widget.destination.name,
               style: const TextStyle(
@@ -131,9 +132,34 @@ class _DetailScreenState extends State<DetailScreen> {
               style: TextStyle(
                 fontSize: 14,
                 color: textColor.withOpacity(0.7),
-              ), // Dinamis agak pudar
+              ),
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 12),
+
+            // --- [BARU] LOKASI ---
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.location_on,
+                    color: Colors.redAccent, size: 20),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    widget.destination.location, // Mengambil data lokasi
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // --- RATING ---
             Row(
               children: [
                 const Icon(Icons.star, color: Colors.orange, size: 20),
@@ -144,12 +170,36 @@ class _DetailScreenState extends State<DetailScreen> {
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                     color: textColor,
-                  ), // Dinamis
+                  ),
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
 
+            // --- [BARU] DESKRIPSI ---
+            Text(
+              "Tentang Wisata",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.destination.description, // Mengambil data deskripsi
+              textAlign: TextAlign.justify,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5, // Spasi antar baris agar nyaman dibaca
+                color: textColor.withOpacity(0.8),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // --- TOMBOL ADD WISHLIST ---
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -171,7 +221,10 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 30),
+
+            // --- REKOMENDASI LAINNYA ---
             if (relatedDestinations.isNotEmpty) ...[
               Text(
                 "Other Destination",
@@ -197,6 +250,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 30), // Padding bawah tambahan
           ],
         ),
       ),
@@ -238,7 +292,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 color: textColor,
-              ), // Dinamis
+              ),
             ),
           ),
         ],

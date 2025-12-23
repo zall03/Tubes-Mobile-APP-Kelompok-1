@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'resiter_secreen.dart'; // Pastikan nama file ini sesuai
+import 'resiter_secreen.dart';
 import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -59,25 +59,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _googleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      // [FIX] Definisikan ID DI SINI agar tidak error
       const webClientId =
           '1053045767170-asg4vk2mk56cci4pf72h2qho6n631ss8.apps.googleusercontent.com';
-
-      // Jika belum punya iOS Client ID, pakai string kosong atau ID web sementara
-      // (Supaya variabelnya 'ada' dan tidak merah)
       const iosClientId =
           '1053045767170-asg4vk2mk56cci4pf72h2qho6n631ss8.apps.googleusercontent.com';
 
-      // Sekarang variabel 'iosClientId' sudah dikenali
       final GoogleSignIn googleSignIn = GoogleSignIn(
         clientId: iosClientId,
         serverClientId: webClientId,
       );
 
-      // 1. Buka Popup Login Google
+      // Force Logout dulu agar Account Picker selalu muncul
+      await googleSignIn.signOut();
+
+      // Baru minta login ulang
       final googleUser = await googleSignIn.signIn();
 
-      // Jika user batal login
       if (googleUser == null) {
         setState(() => _isLoading = false);
         return;
@@ -91,18 +88,15 @@ class _LoginScreenState extends State<LoginScreen> {
         throw 'No ID Token found.';
       }
 
-      // 2. Kirim Token ke Supabase
+      // Kirim Token ke Supabase
       final AuthResponse res = await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
         accessToken: accessToken,
       );
 
-      // 3. Update Profil User
       if (res.user != null) {
         final String fullName = googleUser.displayName ?? "User Google";
-
-        // Update Nama ke Supabase
         await _supabase.auth.updateUser(
           UserAttributes(data: {'full_name': fullName}),
         );
@@ -223,14 +217,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text("Forgot Password?"),
-                ),
-              ),
-              const SizedBox(height: 20),
+
+              // [DIHAPUS] Forgot Password sudah hilang dari sini
+              const SizedBox(height: 30),
 
               // TOMBOL LOGIN EMAIL
               SizedBox(
