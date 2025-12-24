@@ -50,20 +50,20 @@ cd Tubes-Mobile-APP-Kelompok-1
 👥 Contact Person
 Jika ada pertanyaan mengenai proyek ini, silakan hubungi tim pengembang:
 ### 
-Nama: [Isi Nama Ares Indra Jati]
+Nama: [Ares Indra Jati]
 
-UserNAme: [Isi aresindrajati60-svg]
+UserNAme: [aresindrajati60-svg]
 
-Kampus: [Isi Nama Politeknik negeri indramayu]
+Kampus: [Politeknik negeri indramayu]
 ### 
-Nama: [Isi Nama Ares anesty ahmad fauziah]
+Nama: [Ares anesty ahmad fauziah]
 
-UserNAme: [Isi anestyahmadfauziah]
+UserNAme: [anestyahmadfauziah]
 
-Kampus: [Isi Nama Politeknik negeri indramayu]
+Kampus: [Politeknik negeri indramayu]
 ### 
-Nama: [Isi Nama Muhammad rizal jamali ]
+Nama: [Muhammad rizal jamali ]
 
-UserNAme: [Isi zall03/Rizaljamali15@gmail.com]
+UserNAme: [zall03/Rizaljamali15@gmail.com]
 
-Kampus: [Isi Nama Politeknik negeri indramayu]
+Kampus: [Politeknik negeri indramayu]
