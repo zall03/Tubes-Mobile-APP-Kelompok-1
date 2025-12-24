@@ -17,9 +17,8 @@ class ThemeProvider extends ChangeNotifier {
   // Fungsi Ganti Tema
   void toggleTheme(bool isDark) async {
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners(); // Kabari UI untuk berubah warna
+    notifyListeners(); 
 
-    // Simpan ke Shared Preferences (Sesuai S&K)
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkMode', isDark);
   }

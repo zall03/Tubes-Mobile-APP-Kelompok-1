@@ -5,7 +5,6 @@ class DestinationModel {
   final String imageUrl;
   final double rating;
   final int price;
-  // [BARU] Tambahkan field ini
   final String location;
   final String description;
 
@@ -29,7 +28,6 @@ class DestinationModel {
       imageUrl: json['imageUrl'] ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
       price: json['price'] ?? 0,
-      // [BARU] Mapping dari Supabase (sesuikan nama kolom di table Anda)
       location: json['location'] ?? 'Lokasi belum tersedia',
       description: json['descriptions'] ?? 'Tidak ada deskripsi.',
     );

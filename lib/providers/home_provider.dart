@@ -25,12 +25,8 @@ class HomeProvider extends ChangeNotifier {
           .map((json) => DestinationModel.fromJson(json))
           .toList();
 
-      // 3. LOGIKA NEW DESTINATION (6 Terbaru berdasarkan ID)
-      // Kita copy dulu list-nya agar tidak merusak urutan asli
       List<DestinationModel> sortedById = List.from(allData);
-
-      // Sort Descending (Besar ke Kecil) berdasarkan ID
-      // Kita parse ke int agar urutan angka benar ("10" lebih besar dari "2")
+      // 3. LOGIKA NEW DESTINATION (6 Terbaru berdasarkan ID)
       sortedById.sort((a, b) {
         int idA = int.tryParse(a.id) ?? 0;
         int idB = int.tryParse(b.id) ?? 0;

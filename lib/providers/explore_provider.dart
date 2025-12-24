@@ -20,9 +20,8 @@ class ExploreProvider extends ChangeNotifier {
 
   // 2. State Data
   bool isLoading = false;
-  List<DestinationModel> _allDestinations = []; // Data mentah (Private)
+  List<DestinationModel> _allDestinations = []; 
 
-  // [BARU] Getter agar data bisa diakses dari DetailScreen
   List<DestinationModel> get allDestinations => _allDestinations;
 
   // Client Supabase
@@ -69,6 +68,6 @@ class ExploreProvider extends ChangeNotifier {
   // 5. Fungsi Mengganti Kategori
   void changeCategory(String newCategory) {
     selectedCategory = newCategory;
-    notifyListeners(); // Update UI agar GridView berubah
+    notifyListeners(); 
   }
 }
